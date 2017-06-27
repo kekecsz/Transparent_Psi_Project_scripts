@@ -284,7 +284,7 @@ simul <- function(H0_prob, H1_prob, max_num_trials,
 iterations = 100000 #10000 iterations with 3 stops per simulation runs for 8 minutes on i7 6600U 2.6GHz processor
 
 # Determine whether to do classical NHST or BF analysis. This can be set to "BF", "NHST" or "both"
-NHST_or_BF = "BF"
+NHST_or_BF = "both"
 
 # if doing NHST as a main analysis what is the p-threshold of accepting the hypotheses (without correction for multiple comparisons)
 # correction for multiple comparisons is built into the simulation function, it uses Bonferroni correction
