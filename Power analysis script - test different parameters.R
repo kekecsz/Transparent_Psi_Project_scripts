@@ -67,7 +67,7 @@ Mode <- function(x) {
 simul <- function(H0_prob, H1_prob, max_num_trials,
                   rho_scale_proptest, one_sided, prior_distribution, 
                   stop_when_BF_low, stop_when_BF_high, when_to_check_BF, 
-                  NHST_or_BF, NHST_minimum_effect_threshold,
+                  NHST_or_BF, NHST_minimum_effect_threshold, equivalence_test_sides,
                   stop_when_p_H1, stop_when_p_H0, when_to_check_NHST,
                   robustness_test_with){
   
@@ -112,6 +112,12 @@ simul <- function(H0_prob, H1_prob, max_num_trials,
   data_all_H0 <- rbinom(max_num_trials, size = 1, prob=H0_prob)
   
   if(NHST_or_BF == "BF" | NHST_or_BF == "both"){
+
+    
+    ##########################################################
+    # Bayes Factor test as a main/primary hypothesis testing #
+    ##########################################################
+    
     ### Analysis on the dataset in which H1 is true
     # compute bayes factor on the simulated data where H1 is true
     # bayes factor is computed starting with a part of the dataset including the minimum sample size set in the function parameters and this is repeated in a loop increasing the dataset analyzed by 100 trials each time
@@ -197,21 +203,28 @@ simul <- function(H0_prob, H1_prob, max_num_trials,
    
   }
 
+  ##################################################
+  #     Robustness test of BF results with NHST    #
+  ##################################################
   
-  # robustness of BF results is tested with other statistical tests
-  if(robustness_test_with == "NHST_probtest"){
+  # robustness of BF results is tested with NHST tests
+  # THIS IS NOT refering to the NHST test as a main/primary hypothesis testing method. This is using the NHST to "confirm" the results of the BF analysis
+  
+  if(robustness_test_with == "NHST_probtest" & (NHST_or_BF == "BF" | NHST_or_BF == "both")){
     robustness_NHST_probtest_p_greater_then_nullprob_H1_true = prop.test(x = sum(data_H1_BF), n = length(data_H1_BF), p = H0_prob, alternative = "greater")$p.value
-    robustness_NHST_probtest_p_less_than_minimum_effect_threshold_H1_true = prop.test(x = sum(data_H1_BF), n = length(data_H1_BF), p = NHST_minimum_effect_threshold, alternative = "less")$p.value
+    robustness_NHST_probtest_p_less_than_minimum_effect_threshold_H1_true = prop.test(x = sum(data_H1_BF), n = length(data_H1_BF), p = H0_prob+NHST_minimum_effect_threshold, alternative = "less")$p.value
     robustness_NHST_probtest_p_greater_then_nullprob_H0_true = prop.test(x = sum(data_H0_BF), n = length(data_H0_BF), p = H0_prob, alternative = "greater")$p.value
-    robustness_NHST_probtest_p_less_than_minimum_effect_threshold_H0_true = prop.test(x = sum(data_H0_BF), n = length(data_H0_BF), p = NHST_minimum_effect_threshold, alternative = "less")$p.value
+    robustness_NHST_probtest_p_less_than_minimum_effect_threshold_H0_true = prop.test(x = sum(data_H0_BF), n = length(data_H0_BF), p = H0_prob+NHST_minimum_effect_threshold, alternative = "less")$p.value
   }
   
   
   
   
   
+  ##################################################
+  # NHST test as a main/primary hypothesis testing #
+  ##################################################
   
-  # NHST test 
   if(NHST_or_BF == "NHST" | NHST_or_BF == "both"){
     
     # Analysis on the dataset where H1 is simulated to be true
@@ -220,11 +233,26 @@ simul <- function(H0_prob, H1_prob, max_num_trials,
     for(i in when_to_check_NHST){
       comparisons = comparisons + 2 #because we do two tests at each stop point
       data_H1_NHST = data_all_H1[1:i]
+      
+      #equality test
       p_greater_then_nullprob_H1_true = prop.test(x = sum(data_H1_NHST), n = length(data_H1_NHST), p = H0_prob, alternative = "greater")$p.value
       p_greater_then_nullprob_H1_true = p.adjust(p = p_greater_then_nullprob_H1_true, method = "bonferroni", n = comparisons)
-      p_less_than_minimum_effect_threshold_H1_true = prop.test(x = sum(data_H1_NHST), n = length(data_H1_NHST), p = NHST_minimum_effect_threshold, alternative = "less")$p.value
-      p_less_than_minimum_effect_threshold_H1_true = p.adjust(p = p_less_than_minimum_effect_threshold_H1_true, method = "bonferroni", n = comparisons)
-      
+
+      #equivalence test
+      if(equivalence_test_sides == "less"){
+        p_less_than_minimum_effect_threshold_H1_true = prop.test(x = sum(data_H1_NHST), n = length(data_H1_NHST), p = H0_prob+NHST_minimum_effect_threshold, alternative = "less")$p.value
+        p_less_than_minimum_effect_threshold_H1_true = p.adjust(p = p_less_than_minimum_effect_threshold_H1_true, method = "bonferroni", n = comparisons)
+      } else if(equivalence_test_sides == "greater"){
+        p_less_than_minimum_effect_threshold_H1_true = prop.test(x = sum(data_H1_NHST), n = length(data_H1_NHST), p = H0_prob-NHST_minimum_effect_threshold, alternative = "greater")$p.value
+        p_less_than_minimum_effect_threshold_H1_true = p.adjust(p = p_less_than_minimum_effect_threshold_H1_true, method = "bonferroni", n = comparisons)
+      } else if(equivalence_test_sides == "both"){
+        p_equivalence_upper_bound_H1_true = prop.test(x = sum(data_H1_NHST), n = length(data_H1_NHST), p = H0_prob+NHST_minimum_effect_threshold, alternative = "less")$p.value
+        p_equivalence_upper_bound_H1_true = p.adjust(p = p_equivalence_upper_bound_H1_true, method = "bonferroni", n = comparisons)
+        p_equivalence_lower_bound_H1_true = prop.test(x = sum(data_H1_NHST), n = length(data_H1_NHST), p = H0_prob-NHST_minimum_effect_threshold, alternative = "greater")$p.value
+        p_equivalence_lower_bound_H1_true = p.adjust(p = p_equivalence_lower_bound_H1_true, method = "bonferroni", n = comparisons)
+        p_less_than_minimum_effect_threshold_H1_true = max(c(p_equivalence_upper_bound_H1_true, p_equivalence_lower_bound_H1_true))
+      } 
+ 
       if(!is.na(stop_when_BF_low)){if(stop_when_p_H1 > p_greater_then_nullprob_H1_true) break}
       if(!is.na(stop_when_BF_high)){if(stop_when_p_H0 > p_less_than_minimum_effect_threshold_H1_true) break}
     }
@@ -235,11 +263,26 @@ simul <- function(H0_prob, H1_prob, max_num_trials,
     for(i in when_to_check_NHST){
       comparisons = comparisons + 2 #because we do two tests at each stop point
       data_H0_NHST = data_all_H0[1:i]
+      
+      #equality test
       p_greater_then_nullprob_H0_true = prop.test(x = sum(data_H0_NHST), n = length(data_H0_NHST), p = H0_prob, alternative = "greater")$p.value
       p_greater_then_nullprob_H0_true = p.adjust(p = p_greater_then_nullprob_H0_true, method = "bonferroni", n = comparisons)
-      p_less_than_minimum_effect_threshold_H0_true = prop.test(x = sum(data_H0_NHST), n = length(data_H0_NHST), p = NHST_minimum_effect_threshold, alternative = "less")$p.value
-      p_less_than_minimum_effect_threshold_H0_true = p.adjust(p = p_less_than_minimum_effect_threshold_H0_true, method = "bonferroni", n = comparisons)
-      
+
+      #equivalence test
+      if(equivalence_test_sides == "less"){
+        p_less_than_minimum_effect_threshold_H0_true = prop.test(x = sum(data_H0_NHST), n = length(data_H0_NHST), p = H0_prob+NHST_minimum_effect_threshold, alternative = "less")$p.value
+        p_less_than_minimum_effect_threshold_H0_true = p.adjust(p = p_less_than_minimum_effect_threshold_H0_true, method = "bonferroni", n = comparisons)
+      } else if(equivalence_test_sides == "greater"){
+        p_less_than_minimum_effect_threshold_H0_true = prop.test(x = sum(data_H0_NHST), n = length(data_H0_NHST), p = H0_prob-NHST_minimum_effect_threshold, alternative = "greater")$p.value
+        p_less_than_minimum_effect_threshold_H0_true = p.adjust(p = p_less_than_minimum_effect_threshold_H0_true, method = "bonferroni", n = comparisons)
+      } else if(equivalence_test_sides == "both"){
+        p_equivalence_upper_bound_H0_true = prop.test(x = sum(data_H0_NHST), n = length(data_H0_NHST), p = H0_prob+NHST_minimum_effect_threshold, alternative = "less")$p.value
+        p_equivalence_upper_bound_H0_true = p.adjust(p = p_equivalence_upper_bound_H0_true, method = "bonferroni", n = comparisons)
+        p_equivalence_lower_bound_H0_true = prop.test(x = sum(data_H0_NHST), n = length(data_H0_NHST), p = H0_prob-NHST_minimum_effect_threshold, alternative = "greater")$p.value
+        p_equivalence_lower_bound_H0_true = p.adjust(p = p_equivalence_lower_bound_H0_true, method = "bonferroni", n = comparisons)
+        p_less_than_minimum_effect_threshold_H0_true = max(c(p_equivalence_upper_bound_H0_true, p_equivalence_lower_bound_H0_true))
+      }
+    
       if(!is.na(stop_when_BF_low)){if(stop_when_p_H1 > p_greater_then_nullprob_H0_true) break}
       if(!is.na(stop_when_BF_high)){if(stop_when_p_H0 > p_less_than_minimum_effect_threshold_H0_true) break}
     }
@@ -281,7 +324,12 @@ simul <- function(H0_prob, H1_prob, max_num_trials,
 
 # set the number of times the simulation needs to be run
 # note that each simulation simulates two datasets and analyses, one where H1 is simulated to be true and one where H0 is simulated to be true
-iterations = 100000 #10000 iterations with 3 stops per simulation runs for 8 minutes on i7 6600U 2.6GHz processor
+iterations = 20000 #10000 iterations with 3 stops per simulation runs for 8 minutes on i7 6600U 2.6GHz processor
+
+
+true_hit_rate_if_H0_is_true = 0.50
+true_hit_rate_if_H1_is_true = c(0.51, 0.505, 0.501) # this study is powered to be able to detect a true population effect of 0.51
+
 
 # Determine whether to do classical NHST or BF analysis. This can be set to "BF", "NHST" or "both"
 NHST_or_BF = "both"
@@ -289,10 +337,12 @@ NHST_or_BF = "both"
 # if doing NHST as a main analysis what is the p-threshold of accepting the hypotheses (without correction for multiple comparisons)
 # correction for multiple comparisons is built into the simulation function, it uses Bonferroni correction
 p_threshold_to_try = c(0.001)
+SESOI = 0.01 # smallest effect size of interest in the NHST equivalence test
+equivalence_test_sides = c("less") # this can be set to "less", "greater" or "both". "less" is prefered instead of "both" because it resembles the conclusion of the BF approach more.
 
 # If there is a bayes factor analysis, determine whether to run a NHST after stopping, to see if the results are robust to statistical approach
 # THIS IS NOT refering to the NHST test as a main/primary hypothesis testing method. This is using the NHST to "confirm" the results of the BF analysis
-# For testing H0 this analysis uses the NHST_minimum_effect_threshold set in the parameters of the simulation function below
+# For testing H0 this analysis uses the NHST_minimum_effect_threshold set in the SESOI above
 robustness_test_with = c("NHST_probtest") # if set to NA no robustness test is conducted after data collection stopped, if set to "NHST_probtest", the robustness test will be a NHST proportion test
 robustness_test_p_threshold_for_H1 = c(0.001)
 robustness_test_p_threshold_for_H0 = c(0.001)
@@ -323,8 +373,8 @@ mid_trialnumber_to_try = 40000 # if set to NA, a middle stopping point will be a
 ######################################################################
 
 # create a dataframe which will house the final results of the simulation series
-output_frame <- expand.grid(iterations, robustness_test_with, robustness_test_p_threshold_for_H1, robustness_test_p_threshold_for_H0, BFs_to_try, prior_distribution_to_try, rho_to_try_if_default_prior, min_trialnumber_to_try, mid_trialnumber_to_try, max_trialnumber_to_try, p_threshold_to_try)
-names(output_frame) = c("Iterations", "Robustness_test_with", "robustness_test_p_threshold_for_H1", "robustness_test_p_threshold_for_H0", "BF_threshold", "Prior_distribution", "Prior_rho", "Min_trial_n", "Mid_trial_n", "Max_trial_n","p_threshold")
+output_frame <- expand.grid(iterations, true_hit_rate_if_H0_is_true, true_hit_rate_if_H1_is_true, p_threshold_to_try, SESOI, equivalence_test_sides, robustness_test_with, robustness_test_p_threshold_for_H1, robustness_test_p_threshold_for_H0, BFs_to_try, prior_distribution_to_try, rho_to_try_if_default_prior, min_trialnumber_to_try, mid_trialnumber_to_try, max_trialnumber_to_try)
+names(output_frame) = c("Iterations", "True_hit_rate_if_H0_is_true", "True_hit_rate_if_H1_is_true", "p_threshold_to_try", "SESOI", "Equivalence_test_sides","Robustness_test_with", "robustness_test_p_threshold_for_H1", "robustness_test_p_threshold_for_H0", "BF_threshold", "Prior_distribution", "Prior_rho", "Min_trial_n", "Mid_trial_n", "Max_trial_n")
 output_frame[,c("True_H1_when_H1_true_BF", "Insensitive_H1_true_BF", "False_H0_when_H1_true_BF", "True_H0_when_H0_true_BF", "Insensitive_H0_true_BF", "False_H1_when_H0_true_BF", "Mode_num_trials_H1_true_BF", "Mode_num_trials_H0_true_BF", 
                 "True_H1_when_H1_true_NHST", "Insensitive_H1_true_NHST", "False_H0_when_H1_true_NHST", "True_H0_when_H0_true_NHST", "Insensitive_H0_true_NHST", "False_H1_when_H0_true_NHST", "Mode_num_trials_H1_true_NHST", "Mode_num_trials_H0_true_NHST",
                 "ROBUST_True_H1_when_H1_true_BF", "ROBUST_Insensitive_H1_true_BF", "ROBUST_False_H0_when_H1_true_BF", "ROBUST_True_H0_when_H0_true_BF", "ROBUST_Insensitive_H0_true_BF", "ROBUST_False_H1_when_H0_true_BF",
@@ -339,6 +389,9 @@ pb <- progress_bar$new(
 # This for loop runs the simulation series with all the possible combinations of the parameters to try given above
 for(i in 1:nrow(output_frame)){
   
+    true_hit_rate_if_H0_is_true = output_frame[i,"True_hit_rate_if_H0_is_true"]
+  true_hit_rate_if_H1_is_true = output_frame[i,"True_hit_rate_if_H1_is_true"]
+  
   # set BF optional stopping thresholds which will be also used in the power analysis
   BF_threshold_null = output_frame[i,"BF_threshold"]
   BF_threshold = 1/BF_threshold_null
@@ -348,8 +401,10 @@ for(i in 1:nrow(output_frame)){
   prior_rho = output_frame[i,"Prior_rho"]
   
   #set p_threhold for the main NHST analyses if any
-  p_threshold_H1 = output_frame[i,"p_threshold"]
-  p_threshold_H0 = output_frame[i,"p_threshold"]
+  p_threshold_H1 = output_frame[i,"p_threshold_to_try"]
+  p_threshold_H0 = output_frame[i,"p_threshold_to_try"]
+  SESOI = output_frame[i,"SESOI"]
+  equivalence_test_sides = output_frame[i,"Equivalence_test_sides"]
   
   # set minimum and maximum sample size, and middle stopping point
   min_trialnumber = output_frame[i,"Min_trial_n"]
@@ -362,8 +417,8 @@ for(i in 1:nrow(output_frame)){
      
       
   # runs the simulations iterations number of times
-  out <- replicate(iterations, simul(H0_prob = 0.5,
-                                     H1_prob = 0.51,
+  out <- replicate(iterations, simul(H0_prob = true_hit_rate_if_H0_is_true,
+                                     H1_prob = true_hit_rate_if_H1_is_true,
                                      max_num_trials = max_trialnumber,
                                      rho_scale_proptest = prior_rho,
                                      one_sided = T,
@@ -372,7 +427,8 @@ for(i in 1:nrow(output_frame)){
                                      stop_when_BF_high = BF_threshold_null,
                                      when_to_check_BF = c(min_trialnumber, mid_trialnumber, max_trialnumber),
                                      NHST_or_BF = NHST_or_BF,
-                                     NHST_minimum_effect_threshold = 0.51,
+                                     NHST_minimum_effect_threshold = SESOI,
+                                     equivalence_test_sides = equivalence_test_sides,
                                      stop_when_p_H1 = p_threshold_H1,
                                      stop_when_p_H0 = p_threshold_H0,
                                      when_to_check_NHST = c(min_trialnumber, mid_trialnumber, max_trialnumber),
@@ -452,8 +508,18 @@ for(i in 1:nrow(output_frame)){
     output_frame[i,"False_H1_when_H0_true_BF"] <- mean(sim_output[,"BF_proptest_H0_true"] < BF_threshold)
     output_frame[i,"Insensitive_H0_true_BF"] <- 1-output_frame[i,"True_H0_when_H0_true_BF"]-output_frame[i,"False_H1_when_H0_true_BF"]
     output_frame[i,"Mode_num_trials_H0_true_BF"] <- Mode(sim_output[,"data_length_at_stop_BF_H0_true"])
-    output_frame[i,c("Stopped_at_Min_trial_n_BF_H0_true", "Stopped_at_Mid_trial_n_BF_H0_true", "Stopped_at_Max_trial_n_BF_H0_true")] <- table(sim_output[,"data_length_at_stop_BF_H0_true"])/iterations
-    output_frame[i,c("Stopped_at_Min_trial_n_BF_H1_true", "Stopped_at_Mid_trial_n_BF_H1_true", "Stopped_at_Max_trial_n_BF_H1_true")] <- table(sim_output[,"data_length_at_stop_BF_H1_true"])/iterations
+    when_study_stopped_BF_H0_true <- matrix(c(
+      length(which(sim_output[,"data_length_at_stop_BF_H0_true"] == output_frame[i,"Min_trial_n"])),
+      length(which(sim_output[,"data_length_at_stop_BF_H0_true"] == output_frame[i,"Mid_trial_n"])),
+      length(which(sim_output[,"data_length_at_stop_BF_H0_true"] == output_frame[i,"Max_trial_n"]))
+    ), ncol = 3)
+    when_study_stopped_BF_H1_true <- matrix(c(
+      length(which(sim_output[,"data_length_at_stop_BF_H1_true"] == output_frame[i,"Min_trial_n"])),
+      length(which(sim_output[,"data_length_at_stop_BF_H1_true"] == output_frame[i,"Mid_trial_n"])),
+      length(which(sim_output[,"data_length_at_stop_BF_H1_true"] == output_frame[i,"Max_trial_n"]))
+    ), ncol = 3)
+    output_frame[i,c("Stopped_at_Min_trial_n_BF_H0_true", "Stopped_at_Mid_trial_n_BF_H0_true", "Stopped_at_Max_trial_n_BF_H0_true")] <- when_study_stopped_BF_H0_true/iterations
+    output_frame[i,c("Stopped_at_Min_trial_n_BF_H1_true", "Stopped_at_Mid_trial_n_BF_H1_true", "Stopped_at_Max_trial_n_BF_H1_true")] <- when_study_stopped_BF_H1_true/iterations
   }
   # Main NHST analysis results if any
   if(NHST_or_BF=="NHST" | NHST_or_BF=="both"){
@@ -465,8 +531,18 @@ for(i in 1:nrow(output_frame)){
     output_frame[i,"False_H1_when_H0_true_NHST"] <- mean(sim_output[,"p_greater_then_nullprob_H0_true"] < p_threshold_H0)
     output_frame[i,"Insensitive_H0_true_NHST"] <- 1-output_frame[i,"True_H0_when_H0_true_NHST"]-output_frame[i,"False_H1_when_H0_true_NHST"]
     output_frame[i,"Mode_num_trials_H0_true_NHST"] <- Mode(sim_output[,"data_length_at_stop_NHST_H0_true"])
-    output_frame[i,c("Stopped_at_Min_trial_n_NHST_H0_true", "Stopped_at_Mid_trial_n_NHST_H0_true", "Stopped_at_Max_trial_n_NHST_H0_true")] <- table(sim_output[,"data_length_at_stop_NHST_H0_true"])/iterations
-    output_frame[i,c("Stopped_at_Min_trial_n_NHST_H1_true", "Stopped_at_Mid_trial_n_NHST_H1_true", "Stopped_at_Max_trial_n_NHST_H1_true")] <- table(sim_output[,"data_length_at_stop_NHST_H1_true"])/iterations
+    when_study_stopped_NHST_H0_true <- matrix(c(
+      length(which(sim_output[,"data_length_at_stop_NHST_H0_true"] == output_frame[i,"Min_trial_n"])),
+      length(which(sim_output[,"data_length_at_stop_NHST_H0_true"] == output_frame[i,"Mid_trial_n"])),
+      length(which(sim_output[,"data_length_at_stop_NHST_H0_true"] == output_frame[i,"Max_trial_n"]))
+    ), ncol = 3)
+    when_study_stopped_NHST_H1_true <- matrix(c(
+      length(which(sim_output[,"data_length_at_stop_NHST_H1_true"] == output_frame[i,"Min_trial_n"])),
+      length(which(sim_output[,"data_length_at_stop_NHST_H1_true"] == output_frame[i,"Mid_trial_n"])),
+      length(which(sim_output[,"data_length_at_stop_NHST_H1_true"] == output_frame[i,"Max_trial_n"]))
+    ), ncol = 3)
+    output_frame[i,c("Stopped_at_Min_trial_n_NHST_H0_true", "Stopped_at_Mid_trial_n_NHST_H0_true", "Stopped_at_Max_trial_n_NHST_H0_true")] <- when_study_stopped_NHST_H0_true/iterations
+    output_frame[i,c("Stopped_at_Min_trial_n_NHST_H1_true", "Stopped_at_Mid_trial_n_NHST_H1_true", "Stopped_at_Max_trial_n_NHST_H1_true")] <- when_study_stopped_NHST_H1_true/iterations
   }
   # Robustness analysis results if any
   if((NHST_or_BF=="BF" | NHST_or_BF=="both") & !is.na(output_frame[i,"Robustness_test_with"])){
@@ -484,7 +560,7 @@ output_frame
 
 
 # you may want to save results into a csv file so they are easier to look through
-# setwd("C:\\Users\\zo0052ke\\Desktop\\Temp\\Simulation") # if so, set working directory
+# setwd("...") # if so, set working directory
 # write.csv(output_frame, file = "output_frame_csv.csv")
 
 
@@ -494,5 +570,6 @@ output_frame
 #              geom_line(aes(color=factor(Min_trial_n), linetype=factor(Max_trial_n)), size=1.2)+
 #              geom_point(size=3)
 #plot_H1_Power_BF
+
 
 
