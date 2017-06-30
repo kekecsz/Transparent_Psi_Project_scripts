@@ -46,7 +46,7 @@ trial_results_list = list(NA)
 for(i in 1:trial_number){
   trial_results_list[[i]] = biased_sampler(max_trials_per_person = 20,
                                          hit_chance = 0.5,
-                                         min_trials_per_person = 1,
+                                         min_trials_per_person = 1, # to generate a more subtle bias where any individual will only be able to stop when he/she already completed a certain number of trials, increase this number
                                          stop_if_result_over = 0.5)
 
   # these ifs make sure that we stop when we reached the pre-specified number of trials and that we don't have more data than we pre-specified
