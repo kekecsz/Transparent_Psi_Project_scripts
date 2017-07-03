@@ -17,6 +17,7 @@ trial_size_per_participant = 20
 H1_prob = 0.51
 # proportion of hits in the total sample if the null hypothesis is true
 H0_prob = 0.5
+# percentage of ESP-users, or ESP-capable individuals in the population 
 ESP_virtuoso_percentage = 0.021 # this proportion needs to be more than twice as big as the effect size, so for H1_prob = 0.51, this needs to be higher than 0.02
 
 
@@ -73,6 +74,7 @@ t.test(success_proportions_all_H1, mu = H0_prob, alternative = "greater")$p.valu
 # only a handful of ESP-users
 t.test(success_proportions_part_H1, mu = H0_prob, alternative = "greater")$p.value
 # the t-test is affected by the grouping of the effect within a few individuals, because SD is higher in this case, so the t-test becomes less powerful
+# although, the effect clustering only has a minute effect even on the t-test results if sample size is high enough.
 
 # the proportion test
 # everyone the same
