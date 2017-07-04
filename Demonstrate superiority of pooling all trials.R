@@ -1,3 +1,15 @@
+# This script demonstrates that if participants are instructed to stop when they
+# reach a higher than chance hit rate the classical approach of analyzing results
+# where proportion of hits within each participant is analyzed by a t-test
+# will produce positive bias. On the other hand pooling all trial results
+# irrespective of participants and doing a proportion test on this pooled
+# results remains unbiased.
+
+############################################
+#              Load packages               #
+############################################
+
+library(BayesFactor)
 
 
 ############################################
@@ -5,11 +17,14 @@
 ############################################
 
 # function to simulate biased stopping
-# this function generates a vector of random biomial numbers where success (1) has a probability defined in "hit_chance".
+# this function generates a vector of random biomial numbers where 
+# success (1) has a probability defined in "hit_chance".
 # if we simulate H0 being true (no precognition), hit_chance is 0.5
-# we also have to set the maximum number of trials a person is allowed to carry out, and the minimum number of trials the person will carry out, and the biased stopping rule
+# we also have to set the maximum number of trials a person is allowed
+# to carry out, and the minimum number of trials the person will carry out, and the biased stopping rule
 # stop_if_result_over defines the stopping rule of the participant. 
-# If stop_if_result_over is set to 0.5, it means that the participant will stop whenever his success rate across all of his own trials becomes greater than 0.5
+# If stop_if_result_over is set to 0.5, it means that the participant 
+# will stop whenever his success rate across all of his own trials becomes greater than 0.5
 
 biased_sampler <- function(max_trials_per_person,
                            hit_chance,
@@ -36,7 +51,7 @@ biased_sampler <- function(max_trials_per_person,
 # how many people will stop pre-maturely we rather specify how many trials we will analyze in the end. 
 # This makes power analysis possible
 
-trial_number = 1000
+trial_number = 16000
 
 # simulate the study
 # this loops generates data until we reach the total number of trials we pre-specified. 
@@ -85,6 +100,15 @@ mean(success_proportions)
 prop.test(x = sum(unlist(trial_results_list)), n = length(unlist(trial_results_list)), p = H0_prob, alternative = "greater")$p.value
 # the raw data where we pool all trials is NOT biased
 sum(unlist(trial_results_list))/length(unlist(trial_results_list))
+
+
+# the Bayesian proportion test works just as well as the frequentist proportion test
+bf_proptest_rev = proportionBF(sum(unlist(trial_results_list)), length(unlist(trial_results_list)), p = H0_prob, 
+                               rscale = 1/2, nullInterval = c(0.5,1))
+BF_proptest <- as.numeric(matrix(1/bf_proptest_rev[1]))
+BF_proptest # higher number supports H0
+
+
 
 
 
