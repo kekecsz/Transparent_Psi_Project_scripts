@@ -1,3 +1,11 @@
+# This scipt demonstrates that individual differences in ESP ability
+# does not affect the proportion test approach we propose.
+# Whether the ESP effects are clustered within a subgroup of the whole sample
+# or the ESP ability is evenly distributed in the sample,
+# the proportion test approach, where we pool all trials irrespective
+# of participants, will produce the same statistical result.
+
+
 ############################################
 #              Load packages               #
 ############################################
@@ -61,13 +69,6 @@ data_all_H1 = split(data_all_H1_pre, ceiling(seq_along(data_all_H1_pre)/20))
 success_proportions_all_H1 = sapply(data_all_H1, mean)
 success_proportions_part_H1 = sapply(data_part_H1, mean)
 
-mean(success_proportions_all_H1)
-mean(success_proportions_part_H1)
-
-sd(success_proportions_all_H1)
-sd(success_proportions_part_H1)
-
-
 # run the t-test and extract its p-value
 # everyone the same
 t.test(success_proportions_all_H1, mu = H0_prob, alternative = "greater")$p.value
@@ -87,13 +88,12 @@ prop.test(x = sum(unlist(data_part_H1)), n = length(unlist(data_part_H1)), p = H
 # everyone the same
 bf_proptest_rev = proportionBF(sum(unlist(data_all_H1)), length(unlist(data_all_H1)), p = H0_prob, 
                                rscale = 1/2, nullInterval = c(0.5,1))
-BF_proptest_H0_true <- as.numeric(matrix(bf_proptest_rev[2]))
-BF_proptest_H0_true
+BF_proptest <- as.numeric(matrix(1/bf_proptest_rev[1]))
+BF_proptest # higher number supports H0
 
 # only a handful of ESP-users
 bf_proptest_rev = proportionBF(sum(unlist(data_part_H1)), length(unlist(data_part_H1)), p = H0_prob, 
                                rscale = 1/2, nullInterval = c(0.5,1))
-BF_proptest_H0_true <- as.numeric(matrix(bf_proptest_rev[2]))
-BF_proptest_H0_true
+BF_proptest <- as.numeric(matrix(1/bf_proptest_rev[1]))
+BF_proptest # higher number supports H0
 # the bayesian varient of the proportion test is also not affected, the same BF is returned for both randomly distributed and clustered effects.
-
