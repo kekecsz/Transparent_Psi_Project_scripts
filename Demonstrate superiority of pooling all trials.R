@@ -9,7 +9,7 @@
 # if we simulate H0 being true (no precognition), hit_chance is 0.5
 # we also have to set the maximum number of trials a person is allowed to carry out, and the minimum number of trials the person will carry out, and the biased stopping rule
 # stop_if_result_over defines the stopping rule of the participant. 
-# If stop_if_result_over is set to 0.5, it means that the participant will stop whenever his success rate across all of his own trials is becomes greater than 0.5
+# If stop_if_result_over is set to 0.5, it means that the participant will stop whenever his success rate across all of his own trials becomes greater than 0.5
 
 biased_sampler <- function(max_trials_per_person,
                            hit_chance,
