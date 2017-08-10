@@ -14,13 +14,22 @@ library(BayesFactor)
 
 
 ############################################
+#              Custom function             #
+############################################
+# round to nearest x function
+# this is to make sure that rounding does not result in a participant who has half of her trials with null effect and half with the virtuoso effect.
+mround <- function(x,base){ 
+  base*round(x/base) 
+} 
+
+############################################
 #              Set parameters              #
 ############################################
 
-# number of trials to simulate
-max_num_trials = 16000
 # number of trials performed per participant
 trial_size_per_participant = 20
+# number of participants to simulate
+participant_num = 800
 # proportion of hits in the total sample if alternative hypothesis is true
 H1_prob = 0.51
 # proportion of hits in the total sample if the null hypothesis is true
@@ -33,6 +42,9 @@ ESP_virtuoso_percentage = 0.021 # this proportion needs to be more than twice as
 #              Run simulation              #
 ############################################
 
+# number of trials to simulate
+max_num_trials = participant_num*trial_size_per_participant
+
 ##### no individual differences in performance
 
 # simulate data with the assumption that the null hypothesis is true (no individual differences are possible in this scenario, 
@@ -43,7 +55,7 @@ data_all_H0_pre <- rbinom(max_num_trials, size = 1, prob=H0_prob)
 
 average_effect_size = H1_prob-H0_prob # overall effect size averaged over the whole sample
 H1_part_prob = H0_prob + average_effect_size*(1/ESP_virtuoso_percentage) # calclulate effect size within the group of ESP users
-ESP_virtuoso_trial_size = max_num_trials*ESP_virtuoso_percentage # number of trials (sample size) of ESP users
+ESP_virtuoso_trial_size = mround(max_num_trials*ESP_virtuoso_percentage, trial_size_per_participant) # number of trials (sample size) of ESP users
 
 # simulate data for the ESP users
 data_virt <- rbinom(ESP_virtuoso_trial_size, size = 1, prob=H1_part_prob)
