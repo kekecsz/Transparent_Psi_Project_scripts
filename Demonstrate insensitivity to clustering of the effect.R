@@ -50,14 +50,14 @@ data_virt <- rbinom(ESP_virtuoso_trial_size, size = 1, prob=H1_part_prob)
 
 # add ESP-user data to above simulated null effect data to get the total sample
 data_part_H1_pre = c(data_all_H0_pre[1:(max_num_trials-ESP_virtuoso_trial_size)],data_virt)
-data_part_H1 = split(data_part_H1_pre, ceiling(seq_along(data_part_H1_pre)/20))
+data_part_H1 = split(data_part_H1_pre, ceiling(seq_along(data_part_H1_pre)/trial_size_per_participant))
 
 
 # simulate data with the assumption that the alternative hypothesis is true, but there are no individual differences in performance
 # here we do this by simply shuffling randomly the simulated data where higher than chance hits were clustered within a few participants
 # by the shuffling the higher than chance hit rate is now distributed evenly in the sample
 data_all_H1_pre <- sample(data_part_H1_pre)
-data_all_H1 = split(data_all_H1_pre, ceiling(seq_along(data_all_H1_pre)/20))
+data_all_H1 = split(data_all_H1_pre, ceiling(seq_along(data_all_H1_pre)/trial_size_per_participant))
 
 
 
