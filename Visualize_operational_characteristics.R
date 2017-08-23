@@ -1,4 +1,3 @@
-
 ## The code below is used to visualize operational characteristics
 ## of the Transparent Psi Project stage 2 replication study
 
@@ -148,19 +147,18 @@ output_frame_sample_and_H0 <- read.csv(url("https://raw.githubusercontent.com/ke
 hist(BFs_sample[,"True_prob"], freq = F, breaks = 100)
 lines(scale, prior_density)
 
-# very primitive visualization of the BF
+# very primitive visualization of the BFs in the simulation where effect size was sampled from the prior distribution
 # please create something like:
 # Schonbrodt, F. D., & Wagenmakers, E. J. (2016). Bayes factor design analysis: Planning for compelling evidence. Psychonomic Bulletin & Review, 1-15.
 # such as Figure 3a
 
 plot(density(log(BFs_sample[,"BF"])), xlab = "log Bayes_factor", xlim = c(log(1e-40), log(1e+10)))
-abline(v = log(1/45), lty= 2) # limit for accepting H1
-abline(v = log(45), lty= 2) # limit for accepting H0
+abline(v = log(1/output_frame_sample_and_H0$Inference_threshold_BF_high[1]), lty= 2) # limit for accepting H1
+abline(v = log(output_frame_sample_and_H0$Inference_threshold_BF_high[1]), lty= 2) # limit for accepting H0
 
 #### possible plots for H0 (sampled True_prob always p = 0.5)
 
-# very primitive visualization of the BF
+# very primitive visualization of the BFs in the simulation where H0 (p = 0.5) was simulated to be true
 plot(density(log(BFs_H0[,"BF"])), xlab = "log Bayes_factor", xlim = c(-5 , 7))
-abline(v = log(1/45), lty= 2) # limit for accepting H1
-abline(v = log(45), lty= 2) # limit for accepting H0
-
+abline(v = log(1/output_frame_sample_and_H0$Inference_threshold_BF_high[2]), lty= 2) # limit for accepting H1
+abline(v = log(output_frame_sample_and_H0$Inference_threshold_BF_high[2]), lty= 2) # limit for accepting H0
