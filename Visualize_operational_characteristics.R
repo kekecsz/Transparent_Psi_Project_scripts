@@ -3,6 +3,37 @@
 ## of the Transparent Psi Project stage 2 replication study
 
 ########################################################
+#                     Load packages                    #
+########################################################
+
+library(ggplot2)
+library(HDInterval) # needed to calcluate HDI credible interval for visualization
+
+
+
+########################################################
+#                    Custom Functions                  #
+########################################################
+
+# Function calculating the highest density interval using sampling
+# We use hdi() from the library(HDInterval)
+# needed for visualization of the power analysis results
+mode_HDI <- function(scale, density, crit_width = 0.95, n_samples = 1e5){
+  samp <- sample(x = scale, size = n_samples, replace = TRUE, prob = density)
+  hdi_result = hdi(samp, credMass=crit_width)
+  result = c(scale[which(density == max(density))], # mode
+             hdi_result[1], # lower bound
+             hdi_result[2]) # upper bound
+  
+  # only needed for the names of the result
+  Crit_lb = (1-crit_width)/2
+  Crit_ub = crit_width + (1-crit_width)/2
+  
+  names(result) = c("mode", paste(Crit_lb*100, "%", sep = ""), paste(Crit_ub*100, "%", sep = ""))
+  return(result)
+}
+
+########################################################
 #   Visualize inference decisions for all effect sizes #
 ########################################################
 
@@ -15,7 +46,7 @@
 # 0.45, 0.48, 0.49, 0.495, 0.498, 0.499, 0.5, 0.501, 0.502, 0.503, 
 # 0.504, 0.505, 0.506, 0.507, 0.508, 0.509, 0.510, 0.511, 0.512, 
 # 0.515, 0.520, 0.530, 0.560.
-output_frame <- read.csv(url("https://github.com/kekecsz/Transparent_Psi_Project_scripts/blob/master/operational_characteristics_50000sims_beta_BF_45_prior_BEM_allESs.csv"))
+output_frame <- read.csv(url("https://raw.githubusercontent.com/kekecsz/Transparent_Psi_Project_scripts/master/operational_characteristics_50000sims_beta_BF_45_prior_BEM_allESs.csv"))
 
 
 
@@ -74,12 +105,22 @@ Bem_HDI_ub = mode_and_HDI[3]
 # The lower bound of the 90% highest density credible interval is
 # conveniently located at around p = 0.51, where we still have good
 # operational characteristics (roughly 0.95 power and 0.005 alpha error for both H0 and H1)
+
+# for the nice visualization of the prior distribution and HDI maybe some inspiraton
+# can be drawn from:
+# Ly, A., Etz, A., & Wagenmakers, E. J. (2017). Replication Bayes Factors from Evidence Updating.
+# such as Figure 1
+# for te style of the overall plot, I like the style of plots in
+# Schonbrodt, F. D., & Wagenmakers, E. J. (2016). Bayes factor design analysis: Planning for compelling evidence. Psychonomic Bulletin & Review, 1-15.
+# such as Figure 3a (obviously that plot has different information, but similar stilistic elements could be used in our plot as well)
+
+
 figure <- ggplot(long, aes( Simulated_probability_of_success, Percentage))+
-                 geom_area(aes(colour = Inference, fill= Inference), position = 'stack')+
-                 geom_line(data = plot_data, aes(x=scale,y=density), linetype = 1)+
-                 geom_vline(xintercept=interval[1], linetype = "solid")+
-                 geom_vline(xintercept=Bem_HDI_lb, linetype = "dashed")+
-                 geom_vline(xintercept=Bem_HDI_ub, linetype = "dashed")
+  geom_area(aes(colour = Inference, fill= Inference), position = 'stack')+
+  geom_line(data = plot_data, aes(x=scale,y=density), linetype = 1)+
+  geom_vline(xintercept=interval[1], linetype = "solid")+
+  geom_vline(xintercept=Bem_HDI_lb, linetype = "dashed")+
+  geom_vline(xintercept=Bem_HDI_ub, linetype = "dashed")
 figure
 
 #############################################################
@@ -90,14 +131,14 @@ figure
 
 # BFs and True_probs from simulations when True probability
 # of success was sampled from the prior distribution for each study
-BFs_sample <- read.csv(url("https://github.com/kekecsz/Transparent_Psi_Project_scripts/blob/master/..."))
+BFs_sample <- read.csv(url("https://raw.githubusercontent.com/kekecsz/Transparent_Psi_Project_scripts/master/operational_characteristics_100000sims_beta_BF_45_prior_BEM_sample_and_050ESs_BFs_sample.csv"))
 
 # BFs and True_probs from simulations when H0 was simulated to be true
-BFs_H0 <- read.csv(url("https://github.com/kekecsz/Transparent_Psi_Project_scripts/blob/master/..."))
+BFs_H0 <- read.csv(url("https://raw.githubusercontent.com/kekecsz/Transparent_Psi_Project_scripts/master/operational_characteristics_100000sims_beta_BF_45_prior_BEM_sample_and_050ESs_BFs_50.csv"))
 
 # Data frame containing the operational characteristics, and the parameters of the two above mentioned simulations
 # this is not necesseraly needed for the visualization
-output_frame_sample_and_H0 <- read.csv(url("https://github.com/kekecsz/Transparent_Psi_Project_scripts/blob/master/..."))
+output_frame_sample_and_H0 <- read.csv(url("https://raw.githubusercontent.com/kekecsz/Transparent_Psi_Project_scripts/master/operational_characteristics_100000sims_beta_BF_45_prior_BEM_sample_and_050ESs.csv"))
 
 
 #### possible plots for H1 (sampled effect sizes)
@@ -105,12 +146,21 @@ output_frame_sample_and_H0 <- read.csv(url("https://github.com/kekecsz/Transpare
 # checking that p-s were properly sampled from the prior beta distribution
 # the histogram should be roughly following the curve
 hist(BFs_sample[,"True_prob"], freq = F, breaks = 100)
-curve(prior_density, add = T)
+lines(scale, prior_density)
 
 # very primitive visualization of the BF
-plot(density(log(BFs_sample[,"BF"])))
+# please create something like:
+# Schonbrodt, F. D., & Wagenmakers, E. J. (2016). Bayes factor design analysis: Planning for compelling evidence. Psychonomic Bulletin & Review, 1-15.
+# such as Figure 3a
+
+plot(density(log(BFs_sample[,"BF"])), xlab = "log Bayes_factor", xlim = c(log(1e-40), log(1e+10)))
+abline(v = log(1/45), lty= 2) # limit for accepting H1
+abline(v = log(45), lty= 2) # limit for accepting H0
 
 #### possible plots for H0 (sampled True_prob always p = 0.5)
 
 # very primitive visualization of the BF
-plot(density(log(BFs_H0[,"BF"])))
+plot(density(log(BFs_H0[,"BF"])), xlab = "log Bayes_factor", xlim = c(-5 , 7))
+abline(v = log(1/45), lty= 2) # limit for accepting H1
+abline(v = log(45), lty= 2) # limit for accepting H0
+
