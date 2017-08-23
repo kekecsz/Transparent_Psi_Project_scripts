@@ -1,4 +1,12 @@
 
+## The code below is used to visualize operational characteristics
+## of the Transparent Psi Project stage 2 replication study
+
+########################################################
+#   Visualize inference decisions for all effect sizes #
+########################################################
+
+
 # The file contains the results of 50000 simulations with 4 sequential
 # stopping points (at reaching 26000, 44000, 62000, and 80000 
 # completed trials). The Bayes factor (01) threshold is 45 and 1/45 
@@ -7,10 +15,7 @@
 # 0.45, 0.48, 0.49, 0.495, 0.498, 0.499, 0.5, 0.501, 0.502, 0.503, 
 # 0.504, 0.505, 0.506, 0.507, 0.508, 0.509, 0.510, 0.511, 0.512, 
 # 0.515, 0.520, 0.530, 0.560.
-
 output_frame <- read.csv(url("https://github.com/kekecsz/Transparent_Psi_Project_scripts/blob/master/operational_characteristics_50000sims_beta_BF_45_prior_BEM_allESs.csv"))
-# output_frame <- read.csv("C:\\Users\\zo0052ke\\Desktop\\Temp\\operational_characteristics_50000sims_beta_BF_45_prior_BEM_allESs.csv")
-
 
 
 
@@ -76,3 +81,36 @@ figure <- ggplot(long, aes( Simulated_probability_of_success, Percentage))+
                  geom_vline(xintercept=Bem_HDI_lb, linetype = "dashed")+
                  geom_vline(xintercept=Bem_HDI_ub, linetype = "dashed")
 figure
+
+#############################################################
+#   Visualize inference decisions for sampled effect sizes  #
+#############################################################
+
+## data frames containing BF and simulated true probability of success for each  of the simulations at stopping
+
+# BFs and True_probs from simulations when True probability
+# of success was sampled from the prior distribution for each study
+BFs_sample <- read.csv(url("https://github.com/kekecsz/Transparent_Psi_Project_scripts/blob/master/..."))
+
+# BFs and True_probs from simulations when H0 was simulated to be true
+BFs_H0 <- read.csv(url("https://github.com/kekecsz/Transparent_Psi_Project_scripts/blob/master/..."))
+
+# Data frame containing the operational characteristics, and the parameters of the two above mentioned simulations
+# this is not necesseraly needed for the visualization
+output_frame_sample_and_H0 <- read.csv(url("https://github.com/kekecsz/Transparent_Psi_Project_scripts/blob/master/..."))
+
+
+#### possible plots for H1 (sampled effect sizes)
+
+# checking that p-s were properly sampled from the prior beta distribution
+# the histogram should be roughly following the curve
+hist(BFs_sample[,"True_prob"], freq = F, breaks = 100)
+curve(prior_density, add = T)
+
+# very primitive visualization of the BF
+plot(density(log(BFs_sample[,"BF"])))
+
+#### possible plots for H0 (sampled True_prob always p = 0.5)
+
+# very primitive visualization of the BF
+plot(density(log(BFs_H0[,"BF"])))
