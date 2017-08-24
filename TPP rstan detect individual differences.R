@@ -16,7 +16,7 @@ library(rstan)
 #              Custom functions            #
 ############################################
 
-# function to find mode
+# function for rounding to a specific base number
 mround <- function(x,base){ 
   base*round(x/base) 
 } 
@@ -223,11 +223,3 @@ traceplot(Fit3, pars = c("beta", "alpha"),inc_warmup = FALSE)  # plot traces wit
 print(Fit3, pars = c("beta", "alpha"),probs = c(0.025, 0.5, 0.975))
 #marginal posteriors and correlations
 pairs(Fit3,pars = c("beta", "alpha"))
-
-
-save(Fit1, file = "Fit8.RData")
-
-load("Fit2.RData")
-load("Fit3.RData")
-
-# 11:18 - start
