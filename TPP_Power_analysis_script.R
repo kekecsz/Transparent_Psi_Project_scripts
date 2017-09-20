@@ -354,9 +354,9 @@ simul <- function(M0_prob, True_prob, True_prob_samp, max_num_trials,
       #================================================================#
 
       # determine inference (supported model) based on the Bayes factors calculated above  
-      if(Inference_threshold_BF_low > max(c(BF_replication, BF_uniform, BF_BUJ))) {
+      if(Inference_threshold_BF_low >= max(c(BF_replication, BF_uniform, BF_BUJ))) {
         inference_BF = "M1"
-        break} else if(Inference_threshold_BF_high < min(c(BF_replication, BF_uniform, BF_BUJ))) {
+        break} else if(Inference_threshold_BF_high <= min(c(BF_replication, BF_uniform, BF_BUJ))) {
           inference_BF = "M0"
           break} else {inference_BF = "Inconclusive"}
       
