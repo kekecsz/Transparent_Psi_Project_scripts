@@ -336,19 +336,28 @@ general_text = paste("The study stopped at ", total_N, " erotic trials gathered 
       " We observed a total of ", round(mean(data_BF[,"success"]), 4)*100, "% successful guesses within ",
       total_N, " erotic trials.", sep = "")
 
+robustness_text = if(Robust == "robust"){paste(" The results proved to be robust to different statistical approaches, increasing our confidence in our inference.")} else if(Robust == "not robust"){
+  paste(" However, the results did not prove to be robust to different statistical approaches.")}
+
+
 if(inference_BF == "M1"){
   paste(general_text, " Observing this success rate is ", round(1/max(c(BF_replication, BF_uniform, BF_BUJ)),0),
-        " times more likely if humans can guess future randomly determined events than if they are guessing randomly. Taken at face value, the data provide strong evidence that the probability of successfully guessing later computer-generated random events is higher than chance level as previously reported by Bem (2011) and others (Bem, Tressoldi, Rabeyron, & Duggan, 2015).",sep = "")
+        " times more likely if humans can guess future randomly determined events than if they are guessing randomly. Taken at face value, the data provide strong evidence that the probability of successfully guessing later computer-generated random events is higher than chance level as previously reported by Bem (2011) and others (Bem, Tressoldi, Rabeyron, & Duggan, 2015).",
+        robustness_text, sep = "")
 } else if(inference_BF == "M0"){
   paste(general_text, " Observing this success rate is ", round(min(c(BF_replication, BF_uniform, BF_BUJ)),0),
-        " times more likely if humans are guessing randomly than if they can guess future randomly determined events. Taken at face value, the data provide strong evidence that the probability of successfully guessing later computer-generated random events is not higher than chance level as previously reported by Bem (2011) and others (Bem, Tressoldi, Rabeyron, & Duggan, 2015).",sep = "")
-} else if(inference_BF == "Inconclusive" & max(c(BF_replication, BF_uniform, BF_BUJ)) < 1){
+        " times more likely if humans are guessing randomly than if they can guess future randomly determined events. Taken at face value, the data provide strong evidence that the probability of successfully guessing later computer-generated random events is not higher than chance level as previously reported by Bem (2011) and others (Bem, Tressoldi, Rabeyron, & Duggan, 2015).",
+        robustness_text, sep = "")
+  } else if(inference_BF == "Inconclusive" & max(c(BF_replication, BF_uniform, BF_BUJ)) < 1){
   paste(general_text, " Observing this success rate is ", round(1/max(c(BF_replication, BF_uniform, BF_BUJ)),0),
-        " times more likely if humans can guess future randomly determined events than if they are guessing randomly. However, this study outcome did not reach the pre-specified criteria of strong support for either model.",sep = "")
+        " times more likely if humans can guess future randomly determined events than if they are guessing randomly. However, this study outcome did not reach the pre-specified criteria of strong support for either model.",
+        robustness_text, sep = "")
 } else if(inference_BF == "Inconclusive" & min(c(BF_replication, BF_uniform, BF_BUJ)) > 1){
   paste(general_text, " Observing this success rate is ", round(min(c(BF_replication, BF_uniform, BF_BUJ)),0),
-        " times more likely if humans are guessing randomly than if they can guess future randomly determined events. However, this study outcome did not reach the pre-specified criteria of strong support for either model.",sep = "")
-} else {paste(general_text, "However, this study outcome did not reach the pre-specified criteria of strong support for either model.",sep = "")}
+        " times more likely if humans are guessing randomly than if they can guess future randomly determined events. However, this study outcome did not reach the pre-specified criteria of strong support for either model.",
+        robustness_text, sep = "")
+} else {paste(general_text, "However, this study outcome did not reach the pre-specified criteria of strong support for either model.",
+              robustness_text, sep = "")}
 
 
 
