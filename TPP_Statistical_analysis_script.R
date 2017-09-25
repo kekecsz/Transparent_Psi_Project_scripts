@@ -22,17 +22,24 @@ library(HDInterval) # needed to calcluate HDI credible intervals in the Bayesian
 
 # number of trials performed per participant
 trial_size_per_participant = 18
+
 # probability of successful guess among non-ESP users 
 # (this is also used as the null hypothesis in statistical tests)
 M0_prob = 0.5
-# percentage of ESP-users, or ESP-capable individuals in the population 
+
+# ESP_user_percentage sets the percentage of ESP-users, or ESP-capable individuals 
+# in the population 
 # set this to 1 to simulate that everyone has the same level of ESP ability
 # set this to 0 to simulate that noone has ESP ability
 # set this to something in between to simulate that only a portion of the population can
-# use ESP, and the others are just guessing randomly
+# use ESP, and the others are just guessing randomly, 
+# For example ESP_user_percentage = 0.03 and M1_prob = 0.65 simulates that only 3% 
+# of the total poupulation can use ESP, and prediction success rate in this subgroup is 65%.
 ESP_user_percentage = 1 
-# probability of successful guess among ESP-useres 
+
+# probability of successful guess among ESP-users 
 M1_prob = 0.51
+
 # chance of stopping prematurely in each trial, to simulate some missing data due to unexpected events
 # setting this to 0.002 would generate roughly 2% missing data
 # note that premature stopping cannot introduce bias in our confirmatory analyses
@@ -115,10 +122,11 @@ mode_HDI <- function(scale, density, crit_width = 0.95, n_samples = 1e5){
 ######################################################################
 
 
-# simulate the performance of 10000 potential participants
-# In this code we only simulate erotci trials
+# simulate the performance of 10,000 potential participants
+# In this code we only simulate erotic trials
 # Non-erotic trials will be ommitted from the hypothesis testing analysis 
-# in our study during data management.
+# during data management.
+
 list = list(NA)
 
 for(i in 1:10000){
@@ -360,4 +368,62 @@ if(inference_BF == "M1"){
               robustness_text, sep = "")}
 
 
+
+
+
+
+
+
+
+
+
+######################################################################
+#                         Exploratory analysis                       #
+######################################################################
+# The existence of individual differences between participants will be evaluated 
+# using two statistical approaches, one using a frequentist approach, the other Bayesian 
+# inference. In both approaches, we assume that it is possible that only a small 
+# subgroup of the population we sample from is capable of predicting future events
+# with better than chance accuracy.
+
+
+# Set parameters ESP_user_percentage and M1_prob to simulate a samll subgroup of
+# ESP users. For example set ESP_user_percentage = 0.03 and M1_prob = 0.65 to simulate
+# that only 3% of the total poupulation can use ESP, and prediction success rate
+# in this subgroup is 65%.
+
+# EXPLORATORY ANALYSIS RESULTS WILL NOT AFFECT THE CONCLUSIONS OF OUR STUDY
+
+#=======================================================================#
+#            Frequentist aproach - Kolmogorov–Smirnov test              #
+#=======================================================================#
+
+# calculate proportion of successful guesses for each participant in the observed data
+data_BF_split = split(data_BF, f = data_BF[,"participant_ID"])
+success_proportions_empirical = sapply(data_BF_split, function(x) mean(x[,"success"]))
+
+# samples 1,000,000 participants from a population with H0 success rate
+# this is used for the stochastic dominance test as the null model
+# we call this the theoretical sample, because it approximates the theoretical null model
+sim_null_participant_num = 1000000
+success_proportions_theoretical <- rbinom(sim_null_participant_num, size = trial_size_per_participant, prob=M0_prob)/trial_size_per_participant
+
+# select the participants with the highest success rate in both the empirical and the theoretical sample
+top_percentile = 0.9
+success_proportions_theoretical_highest = sort(success_proportions_theoretical)[(length(success_proportions_theoretical)*top_percentile):length(success_proportions_theoretical)]
+success_proportions_empirical_highest = sort(success_proportions_empirical)[(length(success_proportions_empirical)*top_percentile):length(success_proportions_empirical)]
+
+# K-S test of stochastic dominance
+# (this test produces a warning because of ties)
+ks.test(success_proportions_empirical_highest, success_proportions_theoretical_highest, alternative = "l")
+
+
+
+
+
+#=======================================================================#
+#              Bayesian aproach - Kolmogorov–Smirnov test               #
+#=======================================================================#
+
+# The computer code of the Bayesian exploratory analysis is still under construction
 
