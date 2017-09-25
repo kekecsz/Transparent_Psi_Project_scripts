@@ -51,13 +51,13 @@ mround <- function(x,base){
 # number of trials performed per participant
 trial_size_per_participant = 200
 # number of participants to simulate
-participant_num = 18000
+participant_num = 3000
 # proportion of hits in the total sample if alternative hypothesis is true
-H1_prob = 0.51
+H1_prob = 0.505
 # proportion of hits in the total sample if the null hypothesis is true
 H0_prob = 0.5
 # percentage of ESP-users, or ESP-capable individuals in the population 
-ESP_virtuoso_percentage = 0.1 # this proportion needs to be more than twice as big as the effect size, so for H1_prob = 0.51, this needs to be higher than 0.02
+ESP_virtuoso_percentage = 0.03 # this proportion needs to be more than twice as big as the effect size, so for H1_prob = 0.51, this needs to be higher than 0.02
 
 ############################################
 #              simulate smaples            #
