@@ -20,7 +20,7 @@ library(HDInterval) # needed to calcluate HDI credible intervals in the Bayesian
 
 ### Set parameters of generating example dataset
 
-# number of trials performed per participant
+# number of erotic trials performed per participant
 trial_size_per_participant = 18
 
 # probability of successful guess among non-ESP users 
