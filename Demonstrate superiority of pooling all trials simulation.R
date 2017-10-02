@@ -113,7 +113,7 @@ pb <- progress_bar$new(
 
 out = replicate(n = num_sim, simul_stop_if_low (H0_prob = 0.5,
                                    total_num_trials = 30060,
-                                   max_trials_per_person = 20,
+                                   max_trials_per_person = 18,
                                    hit_chance = 0.5,
                                    min_trials_per_person = 3,
                                    stop_if_result_under = 0.4))
