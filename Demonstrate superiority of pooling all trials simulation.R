@@ -4,7 +4,7 @@
 # irrespective of participants and doing a proportion test on this pooled
 # results remains unbiased.
 
-## The simulation runs for about 10 minutes with 1000 simulations on an i7 6600U 2.6 Ghz CPU
+## The simulation runs for about 16 minutes with 1,000,000 simulations on an i7 6600U 2.6 Ghz CPU
 
 ############################################
 #             Load packages                #
@@ -89,22 +89,17 @@ simul_stop_if_low = function(H0_prob, total_num_trials, max_trials_per_person,
   # set the null hypothesis success probability, which will be used in the statistical tests
   H0_prob = H0_prob
   
-  # we average successes within each participant. This data will be used in the classical one-sample t-test approach
-  success_proportions = sapply(trial_results_list, mean)
-  # run the t-test and extract its p-value and the mean of the proportion of successes
-  t_p = t.test(success_proportions, mu = H0_prob)$p.value
-  t_mean = mean(success_proportions)
-  
   # run the proportion test (on the pooled data) and extract its p-value and the proportion of successes in the total dataset
   prop_p = prop.test(x = sum(unlist(trial_results_list)), n = length(unlist(trial_results_list)), p = H0_prob)$p.value
   prop_mean = sum(unlist(trial_results_list))/length(unlist(trial_results_list))
   
-  return(c(t_p, t_mean, prop_p, prop_mean))
+  return(c(prop_p, prop_mean))
 }
 
 
 
-num_sim = 1000
+num_sim = 1000000
+
 
 # set up a progress bar
 pb <- progress_bar$new(
@@ -112,14 +107,28 @@ pb <- progress_bar$new(
   total = num_sim, clear = FALSE, width= 60)
 
 out = replicate(n = num_sim, simul_stop_if_low (H0_prob = 0.5,
-                                   total_num_trials = 30060,
+                                   total_num_trials = 24,
                                    max_trials_per_person = 18,
                                    hit_chance = 0.5,
-                                   min_trials_per_person = 3,
-                                   stop_if_result_under = 0.4))
+                                   min_trials_per_person = 2,
+                                   stop_if_result_under = 1))
 
 output_frame = as.data.frame(t(out))
-names(output_frame) = c("t_p", "t_mean", "prop_p", "prop_mean")
+names(output_frame) = c("prop_p", "prop_mean")
+
+
+
+# probability of having 3 or less tails out of 24 unbiased coin flips
+pbinom(q = 3, size = 24, prob = 0.5)
+
+# the number of simulated studies where the number of incorrect guesses was 3 or less
+# is what we would expect based on the above probability
+# this demonstrates that there is no effect of stopping strategies on the probability of success
+# in our study
+mean(output_frame[,"prop_mean"] >= 0.875)
+
+
+
 
 #set type one error probability
 alpha = 0.005
@@ -127,16 +136,7 @@ alpha = 0.005
 # note that the proportion test is not fooled by the biased stopping rule of the participants
 # because it works with the raw data disregarding participants.
 # the percentage of simulations indicating significant effect is what we would expect
-# based on the type one error rate we allo for
+# based on the type one error rate we allow for
 mean(output_frame[,"prop_p"] < alpha)
-# and the raw data where we pool all trials is NOT biased
-mean(output_frame[,"prop_mean"])
-
-# on the other hand, the type-one error rate of the t-test is extremely high in this case
-# in fact, the t-test will almost always be fooled as long as the number of trials we analyze reaches around 500
-# this is because the t-test uses the data where we average succeses within participants, and 
-# it is this average that is biased by the stopping rule of the participants
-mean(output_frame[,"t_p"] < alpha)
-mean(output_frame[,"t_mean"])
 
 
