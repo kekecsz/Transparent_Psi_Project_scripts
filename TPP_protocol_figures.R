@@ -213,6 +213,7 @@ figure_2 <- ggplot(long, aes(Simulated_probability_of_success, Percentage))+
   geom_vline(xintercept=Bem_HDI_lb, linetype = "dashed", size = 1, alpha = 0.2)+
   geom_vline(xintercept=Bem_HDI_ub, linetype = "dashed", size = 1, alpha = 0.2) +
   scale_fill_manual(values = greypalette) +
+  ylab("Proportion") +
   xlab("Simulated probability of success") +
   theme(axis.line = element_line(colour = "black", size = 1.2),
         axis.text.x = element_text(size = 12, face = "bold", margin = margin(4,0,0,0,"mm"), color = "black"),
