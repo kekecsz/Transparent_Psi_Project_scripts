@@ -8,6 +8,7 @@
 library(HDInterval) # needed to calcluate HDI credible interval for visualization
 library(reshape2)
 library(tidyverse)
+library(emdist) # for EMD (emd() function)
 
 ########################################################
 #                    Custom Functions                  #
@@ -41,70 +42,119 @@ mround <- function(x,base){
 } 
 
 
-#################################################################
-#       Parameters for the stochastic dominance plot            #
-#################################################################
+###########################################################################
+#        Visualize Comparison of expected and observed distributions      #
+###########################################################################
 
-# This plot demonstrates the expected distribution of successes rate
-# if there is a small subgroup of ESP users within the population
-
-# number of trials performed per participant
-trial_size_per_participant = 200
-# number of participants to simulate
-participant_num = 3000
-# proportion of hits in the total sample if alternative hypothesis is true
-H1_prob = 0.505
-# proportion of hits in the total sample if the null hypothesis is true
-H0_prob = 0.5
-# percentage of ESP-users, or ESP-capable individuals in the population 
-ESP_virtuoso_percentage = 0.03 # this proportion needs to be more than twice as big as the effect size, so for H1_prob = 0.51, this needs to be higher than 0.02
-
-############################################
-#              simulate smaples            #
-############################################
-
-# number of trials to simulate
-max_num_trials = participant_num*trial_size_per_participant
-
-##### no individual differences in performance
-
-# simulate data with the assumption that the null hypothesis is true (no individual differences are possible in this scenario, 
-# as each trial s just a random guess and everyone's guess is just as good as the others')
-data_all_H0_pre <- rbinom(max_num_trials, size = 1, prob=H0_prob)
-data_all_H0 = split(data_all_H0_pre, ceiling(seq_along(data_all_H0_pre)/trial_size_per_participant))
-
-##### asuming that only a group of people are able to use ESP to predict future events
-
-average_effect_size = H1_prob-H0_prob # overall effect size averaged over the whole sample
-H1_part_prob = H0_prob + average_effect_size*(1/ESP_virtuoso_percentage) # calclulate effect size within the group of ESP users
-ESP_virtuoso_trial_size = mround(max_num_trials*ESP_virtuoso_percentage, trial_size_per_participant) # number of trials (sample size) of ESP users
-
-# simulate data for the ESP users
-data_virt <- rbinom(ESP_virtuoso_trial_size, size = 1, prob=H1_part_prob)
-mean(data_virt)
-
-# add ESP-user data to above simulated null effect data to get the total sample
-data_part_H1_pre = c(data_all_H0_pre[1:(max_num_trials-ESP_virtuoso_trial_size)],data_virt)
-data_part_H1 = split(data_part_H1_pre, ceiling(seq_along(data_part_H1_pre)/trial_size_per_participant))
+#               Set parameters for example data                      
 
 
-# we average successes within each participant. This data will be used in the classical one-sample t-test approach
-success_proportions_all_H0 = sapply(data_all_H0, mean)
-success_proportions_part_H1 = sapply(data_part_H1, mean)
+### Set parameters of generating example dataset
+
+# number of erotic trials performed per participant
+trial_size_per_participant = 18
+
+# probability of successful guess among non-ESP users 
+# (this is also used as the null hypothesis in statistical tests)
+M0_prob = 0.5
+
+# ESP_user_percentage sets the percentage of ESP-users, or ESP-capable individuals 
+# in the population 
+# set this to 1 to simulate that everyone has the same level of ESP ability
+# set this to 0 to simulate that noone has ESP ability
+# set this to something in between to simulate that only a portion of the population can
+# use ESP, and the others are just guessing randomly, 
+# For example ESP_user_percentage = 0.03 and M1_prob = 0.65 simulates that only 3% 
+# of the total poupulation can use ESP, and prediction success rate in this subgroup is 65%.
+ESP_user_percentage = 0.1 
+
+# probability of successful guess among ESP-users 
+M1_prob = 0.6
+
+# chance of stopping prematurely in each trial, to simulate some missing data due to unexpected events
+# setting this to 0.002 would generate roughly 2% missing data
+# note that premature stopping cannot introduce bias in our confirmatory analyses
+chance_for_stopping_session = 0
 
 
 
-# plot 
-density_plot_data = as.data.frame(c(success_proportions_all_H0, success_proportions_part_H1))
-density_plot_data = cbind(density_plot_data, factor(c(rep("Expected if M0 is true", length(success_proportions_all_H0)), rep("Observed", length(success_proportions_part_H1)))))
-names(density_plot_data) = c("success", "group")
+#                       Generate example data                        
 
-figure_1 =  ggplot(density_plot_data, aes(x = success, group = group))+
-  geom_density(aes(colour = group, linetype = group), adjust = 1.5, size = 1)+
-  scale_color_manual(values = c("darkgrey", "black")) +
-  scale_linetype_manual(values = c("dashed", "solid")) +
+
+# simulate the performance of 3,000 potential participants
+# In this code we only simulate erotic trials
+# Non-erotic trials will be ommitted from the hypothesis testing analysis 
+# during data management.
+
+list = list(NA)
+
+for(i in 1:3000){
+  ESP_user = rbinom(1, 1, prob = ESP_user_percentage)
+  prob = M0_prob + (M1_prob - M0_prob)*ESP_user
+  subj_data = as.data.frame(matrix(NA, nrow = 1, ncol = 2))
+  
+  for(j in 1:trial_size_per_participant){
+    subj_data[j,1] = i
+    subj_data[j,2] = rbinom(1, 1, prob = prob)
+    list[[i]] = subj_data
+    if(runif(1, min = 0, max = 1) < chance_for_stopping_session) break
+  }
+}
+
+data_BF = do.call("rbind", list)
+names(data_BF) = c("participant_ID", "success")
+
+
+
+#                       Data management for plot                     
+
+
+# calculate proportion of successful guesses for each participant in the observed data
+data_BF_split = split(data_BF, f = data_BF[,"participant_ID"])
+success_proportions_empirical = sapply(data_BF_split, function(x) mean(x[,"success"]))
+
+# samples 1,000,000 participants from a population with H0 success rate
+# this is used for the stochastic dominance test as the null model
+# we call this the theoretical sample, because it approximates the theoretical null model
+sim_null_participant_num = 1000000
+success_proportions_theoretical <- rbinom(sim_null_participant_num, size = trial_size_per_participant, prob=M0_prob)/trial_size_per_participant
+
+# determine possible values of success rates
+possible_success_rates = 0
+for(i in 1:trial_size_per_participant){
+  possible_success_rates[i+1] = round(1/(trial_size_per_participant/i), 2)
+}
+possible_success_rates_char = as.character(possible_success_rates)
+success_proportions_theoretical_char_rounded = as.character(round(success_proportions_theoretical, 2))
+success_proportions_empirical_char_rounded = as.character(round(success_proportions_empirical, 2))
+
+success_rates_theoretical = NA
+for(i in 1:length(possible_success_rates)){
+  success_rates_theoretical[i] = sum(success_proportions_theoretical_char_rounded == possible_success_rates_char[i])
+}
+success_rates_theoretical_prop = matrix(success_rates_theoretical/sum(success_rates_theoretical))
+
+
+success_rates_empirical = NA
+for(i in 1:length(possible_success_rates)){
+  success_rates_empirical[i] = sum(success_proportions_empirical_char_rounded == possible_success_rates_char[i])
+}
+success_rates_empirical_prop = matrix(success_rates_empirical/sum(success_rates_empirical))
+
+
+
+#                        Plot 
+
+histogram_plot_data = as.data.frame(c(success_rates_theoretical_prop, success_rates_empirical_prop))
+histogram_plot_data = cbind(histogram_plot_data, factor(c(rep("Expected if M0 is true", length(success_rates_theoretical_prop)), rep("Observed", length(success_rates_empirical_prop)))))
+histogram_plot_data = cbind(histogram_plot_data, factor(rep(possible_success_rates_char, 2)))
+names(histogram_plot_data) = c("proportion", "group", "success")
+
+figure_1 =  ggplot(histogram_plot_data, aes(y = proportion, x = success, group = group))+
+  geom_bar(aes(fill = group), alpha = 0.5, stat = "identity", position = "identity")+
+  scale_fill_manual(values = c("darkgrey", "black")) +
   xlab("Successful guess rate") +
-  ylab("Density") +
+  ylab("Proportion") +
   theme(panel.border = element_blank(),
         panel.background = element_blank(),
         panel.grid.major = element_blank(),
@@ -115,6 +165,9 @@ figure_1 =  ggplot(density_plot_data, aes(x = success, group = group))+
         axis.text.y = element_text(face = "bold", color = "black", size = 12),
         axis.title = element_text(size = 16))
 figure_1
+
+
+
 
 # to save the plot as high res image
 # jpeg(file= "figure_1.jpeg", width=9, height=6.5, units="in", pointsize="12", bg="white", res=600, antialias = "none")
@@ -144,7 +197,7 @@ wide <- output_frame[,c("True_prob", "Supported_H1_BF", "Supported_H0_BF", "Inco
 
 # convert to long format
 long <- reshape(wide, idvar = "True_prob", varying = c("Supported_H1_BF", "Supported_H0_BF", "Inconclusive_BF"),
-               v.names = "conc", direction = "long")
+                v.names = "conc", direction = "long")
 
 # names of the inference decisions
 long[long[,"time"] == 1,"time"] <- "evidence for M1"
@@ -403,5 +456,3 @@ figure_3_a
 # jpeg(file= "M0.jpeg", width=9, height=6.5, units="in", pointsize="12", bg="white", res=600, antialias = "none")
 # figure_3_a
 # dev.off()
-
-
