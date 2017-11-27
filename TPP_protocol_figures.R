@@ -8,7 +8,6 @@
 library(HDInterval) # needed to calcluate HDI credible interval for visualization
 library(reshape2)
 library(tidyverse)
-library(emdist) # for EMD (emd() function)
 
 ########################################################
 #                    Custom Functions                  #
