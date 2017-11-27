@@ -9,7 +9,8 @@
 #                                                                    #
 ######################################################################
 library(HDInterval) # needed to calcluate HDI credible intervals in the Bayesian parameter estimation robustness test
-
+library(ggplot2) # for plotting
+library(emdist) # to calcluate earth mover's distance (EMD)
 
 
 ######################################################################
@@ -267,6 +268,13 @@ equivalence_test_p = prop.test(x = successes, n = total_N,
                                                                           p = M0_prob+minimum_effect_threshold_NHST, 
                                                                           alternative = "less")$p.value
 
+# descritives of the frequentist estimate
+pbar = successes/total_N
+SE = sqrt(pbar * (1-pbar)/total_N)
+E = qnorm(.9975) * SE
+proportion_995CI = round(pbar + c(-E , E), 3)
+
+
 
 # making inference decision
 if((Inference_threshold_robustness_NHST > equality_test_p) & 
@@ -313,8 +321,6 @@ if(HDI_lb >= ROPE){inference_robustness_Bayes_Par_Est = "M1"
 } else {inference_robustness_Bayes_Par_Est = "Inconclusive"}
 
 
-
-
 #=======================================================================#
 #      Determine final inference of all robustness tests combined       #
 #=======================================================================#
@@ -342,7 +348,9 @@ missing_data_points = (length(unique(data_BF[,"participant_ID"])) * trial_size_p
 general_text = paste("The study stopped at ", total_N, " erotic trials gathered from a total of ",
       max(data_BF[,"participant_ID"]), " participants.", " There has been ", missing_data_points, " (", round(missing_data_points/total_N*100,2),"%) missing data points due to unfinished sessions.", 
       " We observed a total of ", round(mean(data_BF[,"success"]), 4)*100, "% successful guesses within ",
-      total_N, " erotic trials.", sep = "")
+      total_N, " erotic trials (99.5% CI = ", proportion_995CI[1]*100, "%", ", ", proportion_995CI[2]*100, "%", 
+      "; posterior mode = ", hdi_result[1]*100, "%", ", posterior 90% HDI = ", HDI_lb*100, "%", ", ",
+      HDI_ub*100, "%", ").", sep = "")
 
 robustness_text = if(Robust == "robust"){paste(" The results proved to be robust to different statistical approaches, increasing our confidence in our inference.")} else if(Robust == "not robust"){
   paste(" However, the results did not prove to be robust to different statistical approaches.")}
@@ -395,7 +403,7 @@ if(inference_BF == "M1"){
 # EXPLORATORY ANALYSIS RESULTS WILL NOT AFFECT THE CONCLUSIONS OF OUR STUDY
 
 #=======================================================================#
-#            Frequentist aproach - Kolmogorov–Smirnov test              #
+#           Comparison of expected and observed distributions           #
 #=======================================================================#
 
 # calculate proportion of successful guesses for each participant in the observed data
@@ -408,21 +416,59 @@ success_proportions_empirical = sapply(data_BF_split, function(x) mean(x[,"succe
 sim_null_participant_num = 1000000
 success_proportions_theoretical <- rbinom(sim_null_participant_num, size = trial_size_per_participant, prob=M0_prob)/trial_size_per_participant
 
-# select the participants with the highest success rate in both the empirical and the theoretical sample
-top_percentile = 0.9
-success_proportions_theoretical_highest = sort(success_proportions_theoretical)[(length(success_proportions_theoretical)*top_percentile):length(success_proportions_theoretical)]
-success_proportions_empirical_highest = sort(success_proportions_empirical)[(length(success_proportions_empirical)*top_percentile):length(success_proportions_empirical)]
+# determine possible values of success rates
+possible_success_rates = 0
+for(i in 1:trial_size_per_participant){
+  possible_success_rates[i+1] = round(1/(trial_size_per_participant/i), 2)
+}
+possible_success_rates_char = as.character(possible_success_rates)
+success_proportions_theoretical_char_rounded = as.character(round(success_proportions_theoretical, 2))
+success_proportions_empirical_char_rounded = as.character(round(success_proportions_empirical, 2))
 
-# K-S test of stochastic dominance
-# (this test produces a warning because of ties)
-ks.test(success_proportions_empirical_highest, success_proportions_theoretical_highest, alternative = "l")
+success_rates_theoretical = NA
+for(i in 1:length(possible_success_rates)){
+  success_rates_theoretical[i] = sum(success_proportions_theoretical_char_rounded == possible_success_rates_char[i])
+}
+success_rates_theoretical_prop = matrix(success_rates_theoretical/sum(success_rates_theoretical))
 
 
+success_rates_empirical = NA
+for(i in 1:length(possible_success_rates)){
+  success_rates_empirical[i] = sum(success_proportions_empirical_char_rounded == possible_success_rates_char[i])
+}
+success_rates_empirical_prop = matrix(success_rates_empirical/sum(success_rates_empirical))
+
+
+
+# plot 
+histogram_plot_data = as.data.frame(c(success_rates_theoretical_prop, success_rates_empirical_prop))
+histogram_plot_data = cbind(histogram_plot_data, factor(c(rep("Expected if M0 is true", length(success_rates_theoretical_prop)), rep("Observed", length(success_rates_empirical_prop)))))
+histogram_plot_data = cbind(histogram_plot_data, factor(rep(possible_success_rates_char, 2)))
+names(histogram_plot_data) = c("proportion", "group", "success")
+
+figure_1 =  ggplot(histogram_plot_data, aes(y = proportion, x = success, group = group))+
+  geom_bar(aes(fill = group), alpha = 0.5, stat = "identity", position = "identity")+
+  scale_fill_manual(values = c("darkgrey", "black")) +
+  xlab("Successful guess rate") +
+  ylab("Proportion") +
+  theme(panel.border = element_blank(),
+        panel.background = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        legend.position = "bottom",
+        axis.line = element_line(colour = "black", size = 1.2),
+        axis.text.x = element_text(angle = 90, color = "black", face = "bold", size = 12, margin = margin(1,0,0,0,"mm"), vjust = 0.5),
+        axis.text.y = element_text(face = "bold", color = "black", size = 12),
+        axis.title = element_text(size = 16))
+figure_1
+
+# earth mover's distance
+emd2d(success_rates_theoretical_prop,success_rates_empirical_prop)
 
 
 
 #=======================================================================#
-#              Bayesian aproach - Kolmogorov–Smirnov test               #
+#                             Bayesian aproach                          #
 #=======================================================================#
 
 # The computer code of the Bayesian exploratory analysis is still under construction
