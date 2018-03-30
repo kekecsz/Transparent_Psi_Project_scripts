@@ -192,7 +192,7 @@ options(mc.cores = parallel::detectCores())  # detect number of cores on the cur
 # ran for almost 4 hours and 40 minutes on Intel i7 6600U 2.6 GHz CPU.
 Fit1 <- stan(file = "model.stan", data = stansimdata_part_H1, init=initpar, iter = 3000, chains = 3, control = list(adapt_delta = 0.999,max_treedepth=15))  # chains can be 1, 2, 3, 4 (or even more, but not recommended unless you have >4 cores at your disposal)
 Fit2 <- stan(file = "model.stan", data = stansimdata_all_H1, init=initpar, iter = 3000, chains = 3, control = list(adapt_delta = 0.999,max_treedepth=15))  # chains can be 1, 2, 3, 4 (or even more, but not recommended unless you have >4 cores at your disposal)
-Fit4 <- stan(file = "model.stan", data = stansimdata_all_H0, init=initpar, iter = 3000, chains = 3, control = list(adapt_delta = 0.999,max_treedepth=15))  # chains can be 1, 2, 3, 4 (or even more, but not recommended unless you have >4 cores at your disposal)
+Fit3 <- stan(file = "model.stan", data = stansimdata_all_H0, init=initpar, iter = 3000, chains = 3, control = list(adapt_delta = 0.999,max_treedepth=15))  # chains can be 1, 2, 3, 4 (or even more, but not recommended unless you have >4 cores at your disposal)
 
 # Or the fit of a previous run can be loaded from a file:
 # load(paste(file_location, "output_fit_mixture_alpha_has_betaprior", sep = "")) # loads the Stan output in the workspace
